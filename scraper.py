@@ -78,30 +78,30 @@ def insert_employee_data(cursor, company_id, employees):
         name = VALUES(name), profile_picture = VALUES(profile_picture), 
         description = VALUES(description);
     """
-    for emp in employees:
-        cursor.execute(query, (company_id, emp["Name"], emp["Profile URL"], emp["Profile Picture"], emp["Description"]))
+    cursor.executemany(query, [(company_id, emp["Name"], emp["Profile URL"], emp["Profile Picture"], emp["Description"]) for emp in employees])
 
 
-# Insert Post Data
+# Insert Post Data (With Media Insertion)
 def insert_post_data(cursor, company_id, posts):
-    query = """
+    post_query = """
         INSERT INTO posts (company_id, post_id, text, likes, comments, reposts)
         VALUES (%s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE text = VALUES(text), likes = VALUES(likes), 
         comments = VALUES(comments), reposts = VALUES(reposts);
     """
-    for post in posts:
-        cursor.execute(query, (company_id, post["Post ID"], post["Text"], post["Likes"], post["Comments"], post["Reposts"]))
-
-
-# Insert Media Data
-def insert_media_data(cursor, post_id, media_links):
-    query = """
+    
+    media_query = """
         INSERT INTO media (post_id, media_url) VALUES (%s, %s)
         ON DUPLICATE KEY UPDATE media_url = VALUES(media_url);
     """
-    for media_url in media_links:
-        cursor.execute(query, (post_id, media_url))
+
+    for post in posts:
+        cursor.execute(post_query, (company_id, post["Post ID"], post["Text"], post["Likes"], post["Comments"], post["Reposts"]))
+        post_id = cursor.lastrowid  # Get the last inserted post ID
+
+        # Insert Media Links
+        if post["Media Links"]:
+            cursor.executemany(media_query, [(post_id, media_url) for media_url in post["Media Links"]])
 
 
 # Extract text based on label
